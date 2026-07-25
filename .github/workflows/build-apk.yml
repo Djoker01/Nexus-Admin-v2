@@ -34,63 +34,80 @@ jobs:
         with:
           packages: 'platforms;android-33 build-tools;33.0.0'
       
+      - name: Verificar estructura del proyecto
+        run: |
+          echo "=== Archivos en la raíz ==="
+          ls -la
+          echo "=== Archivos en www ==="
+          ls -la www/ || echo "⚠️ Carpeta www NO EXISTE"
+          echo "=== Buscando index.html ==="
+          find . -name "index.html" -type f
+      
+      - name: Crear carpeta www si no existe
+        run: |
+          if [ ! -d "www" ]; then
+            echo "⚠️ Creando carpeta www..."
+            mkdir -p www
+            mkdir -p www/css
+            mkdir -p www/js/modules
+            mkdir -p www/lib
+            mkdir -p www/icons
+          fi
+      
+      - name: Mover archivos a www si están en raíz
+        run: |
+          # Si index.html está en la raíz, mover todo a www
+          if [ -f "index.html" ] && [ ! -f "www/index.html" ]; then
+            echo "Moviendo archivos de raíz a www..."
+            cp -r index.html www/ 2>/dev/null || true
+            cp -r manifest.json www/ 2>/dev/null || true
+            cp -r sw.js www/ 2>/dev/null || true
+            cp -r css www/ 2>/dev/null || true
+            cp -r js www/ 2>/dev/null || true
+            cp -r lib www/ 2>/dev/null || true
+            cp -r icons www/ 2>/dev/null || true
+          fi
+      
+      - name: Verificar www después de mover
+        run: |
+          echo "=== www después de mover ==="
+          ls -la www/
+          echo "=== ¿Existe index.html? ==="
+          ls -la www/index.html || echo "❌ NO EXISTE"
+      
+      - name: Crear index.html mínimo si no existe
+        run: |
+          if [ ! -f "www/index.html" ]; then
+            echo "❌ Creando index.html de emergencia..."
+            cat > www/index.html << 'HTMLEOF'
+          <!DOCTYPE html>
+          <html lang="es">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Nexus Admin</title>
+          </head>
+          <body>
+              <h1>Nexus Admin</h1>
+              <p>La aplicación se está cargando...</p>
+          </body>
+          </html>
+          HTMLEOF
+          fi
+      
       - name: Instalar dependencias
         run: |
           npm install
           npm install -g @capacitor/cli
       
-      - name: Eliminar carpeta android si existe
-        run: |
-          if [ -d "android" ]; then
-            echo "Eliminando carpeta android existente..."
-            rm -rf android
-          fi
-      
-      - name: Crear estructura de recursos
-        run: |
-          mkdir -p www/icons
-          mkdir -p www/css
-          mkdir -p www/js/modules
-          mkdir -p www/lib
-      
-      - name: Generar íconos básicos
-        run: |
-          # Crear íconos simples usando Node.js
-          node << 'EOF'
-          const fs = require('fs');
-          const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
-          
-          sizes.forEach(size => {
-              // Crear un SVG simple y guardarlo como referencia
-              const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-                  <rect width="${size}" height="${size}" rx="${size/8}" fill="#111827"/>
-                  <text x="${size/2}" y="${size/2}" text-anchor="middle" dy=".3em" 
-                      font-family="Arial" font-weight="bold" font-size="${size/2}" fill="white">N</text>
-              </svg>`;
-              fs.writeFileSync(`www/icons/icon-${size}x${size}.svg`, svg);
-          });
-          
-          console.log('✅ Íconos SVG generados');
-          EOF
+      - name: Eliminar android si existe
+        run: rm -rf android
       
       - name: Agregar plataforma Android
-        run: |
-          npx cap add android
+        run: npx cap add android
       
-      - name: Sincronizar proyecto web con Android
-        run: |
-          npx cap sync android
-      
-      - name: Verificar estructura
-        run: |
-          echo "=== Estructura del proyecto ==="
-          ls -la
-          echo "=== Contenido de www ==="
-          ls -la www/
-          echo "=== Estructura de Android ==="
-          ls -la android/
-          echo "=== Gradle files ==="
-          ls -la android/app/
+      - name: Sincronizar proyecto web
+        run: npx cap sync android
       
       - name: Dar permisos a Gradle
         run: |
@@ -102,13 +119,36 @@ jobs:
           cd android
           ./gradlew assembleDebug
       
-      - name: Verificar APK generada
+      - name: Copiar APK
         run: |
-          echo "=== Buscando APKs ==="
-          find android -name "*.apk" -type f
-          echo "=== Tamaño de APKs ==="
-          find android -name "*.apk" -type f -exec ls -lh {} \;
+          mkdir -p output
+          find android -name "*.apk" -exec cp {} output/nexus-admin.apk \;
+          ls -la output/
       
+      - name: Subir APK como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-admin-apk
+          path: output/*.apk
+      
+      - name: Crear Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.event.inputs.version || '1.0.0' }}
+          name: Nexus Admin v${{ github.event.inputs.version || '1.0.0' }}
+          body: |
+            ## 📱 Nexus Admin APK
+            **Versión:** ${{ github.event.inputs.version || '1.0.0' }}
+            
+            ### Para instalar:
+            1. Descarga el APK
+            2. Permite fuentes desconocidas
+            3. Instala y abre
+          files: |
+            output/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}      
       - name: Crear carpeta de salida
         run: |
           mkdir -p output
