@@ -3,7 +3,7 @@ name: Build Android APK
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:  # Permite ejecución manual
+  workflow_dispatch:
     inputs:
       version:
         description: 'Versión de la APK'
@@ -39,61 +39,62 @@ jobs:
           npm install
           npm install -g @capacitor/cli
       
-      - name: Crear recursos de Android
+      - name: Eliminar carpeta android si existe
         run: |
-          # Crear directorios necesarios
-          mkdir -p android/app/src/main/res/mipmap-hdpi
-          mkdir -p android/app/src/main/res/mipmap-mdpi
-          mkdir -p android/app/src/main/res/mipmap-xhdpi
-          mkdir -p android/app/src/main/res/mipmap-xxhdpi
-          mkdir -p android/app/src/main/res/mipmap-xxxhdpi
-          mkdir -p android/app/src/main/res/drawable
-          mkdir -p android/app/src/main/res/values
+          if [ -d "android" ]; then
+            echo "Eliminando carpeta android existente..."
+            rm -rf android
+          fi
       
-      - name: Generar íconos (script Python)
+      - name: Crear estructura de recursos
         run: |
-          python3 << 'EOF'
-          from PIL import Image, ImageDraw, ImageFont
-          import os
+          mkdir -p www/icons
+          mkdir -p www/css
+          mkdir -p www/js/modules
+          mkdir -p www/lib
+      
+      - name: Generar íconos básicos
+        run: |
+          # Crear íconos simples usando Node.js
+          node << 'EOF'
+          const fs = require('fs');
+          const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
           
-          sizes = [48, 72, 96, 144, 192, 512]
-          for size in sizes:
-              img = Image.new('RGB', (size, size), color='#111827')
-              draw = ImageDraw.Draw(img)
-              # Dibujar círculo blanco
-              margin = size // 8
-              draw.ellipse([margin, margin, size-margin, size-margin], fill='white')
-              # Dibujar letra N
-              try:
-                  font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size//2)
-              except:
-                  font = ImageFont.load_default()
-              draw.text((size//2, size//2), 'N', fill='#111827', font=font, anchor='mm')
-              img.save(f'www/icons/icon-{size}x{size}.png')
-          print("✅ Íconos generados")
+          sizes.forEach(size => {
+              // Crear un SVG simple y guardarlo como referencia
+              const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+                  <rect width="${size}" height="${size}" rx="${size/8}" fill="#111827"/>
+                  <text x="${size/2}" y="${size/2}" text-anchor="middle" dy=".3em" 
+                      font-family="Arial" font-weight="bold" font-size="${size/2}" fill="white">N</text>
+              </svg>`;
+              fs.writeFileSync(`www/icons/icon-${size}x${size}.svg`, svg);
+          });
+          
+          console.log('✅ Íconos SVG generados');
           EOF
-        continue-on-error: true
-      
-      - name: Inicializar Capacitor
-        run: |
-          npx cap init "Nexus Admin" "com.tunegocio.nexusadmin" --web-dir=www
       
       - name: Agregar plataforma Android
         run: |
           npx cap add android
       
-      - name: Sincronizar proyecto web
+      - name: Sincronizar proyecto web con Android
         run: |
           npx cap sync android
       
-      - name: Configurar Gradle
+      - name: Verificar estructura
+        run: |
+          echo "=== Estructura del proyecto ==="
+          ls -la
+          echo "=== Contenido de www ==="
+          ls -la www/
+          echo "=== Estructura de Android ==="
+          ls -la android/
+          echo "=== Gradle files ==="
+          ls -la android/app/
+      
+      - name: Dar permisos a Gradle
         run: |
           cd android
-          # Configurar versión
-          sed -i "s/versionCode 1/versionCode ${GITHUB_RUN_NUMBER}/" app/build.gradle
-          sed -i "s/versionName \"1.0\"/versionName \"${{ github.event.inputs.version || '1.0.0' }}\"/" app/build.gradle
-          
-          # Dar permisos de ejecución a gradlew
           chmod +x gradlew
       
       - name: Compilar APK Debug
@@ -101,30 +102,34 @@ jobs:
           cd android
           ./gradlew assembleDebug
       
-      - name: Compilar APK Release (firmada con debug key)
+      - name: Verificar APK generada
         run: |
-          cd android
-          ./gradlew assembleRelease
+          echo "=== Buscando APKs ==="
+          find android -name "*.apk" -type f
+          echo "=== Tamaño de APKs ==="
+          find android -name "*.apk" -type f -exec ls -lh {} \;
       
-      - name: Renombrar APK
+      - name: Crear carpeta de salida
         run: |
           mkdir -p output
-          cp android/app/build/outputs/apk/debug/app-debug.apk output/nexus-admin-v${{ github.event.inputs.version || '1.0.0' }}-debug.apk
-          cp android/app/build/outputs/apk/release/app-release-unsigned.apk output/nexus-admin-v${{ github.event.inputs.version || '1.0.0' }}-release-unsigned.apk
       
-      - name: Subir APK Debug como artefacto
+      - name: Copiar APK Debug
+        run: |
+          if [ -f "android/app/build/outputs/apk/debug/app-debug.apk" ]; then
+            cp android/app/build/outputs/apk/debug/app-debug.apk output/nexus-admin-debug.apk
+            echo "✅ APK Debug copiada"
+          else
+            echo "⚠️ APK Debug no encontrada, buscando..."
+            find android -name "*.apk" -exec cp {} output/nexus-admin-debug.apk \;
+          fi
+      
+      - name: Subir APK como artefacto
         uses: actions/upload-artifact@v4
         with:
-          name: nexus-admin-debug-apk
-          path: output/nexus-admin-*-debug.apk
+          name: nexus-admin-apk
+          path: output/*.apk
       
-      - name: Subir APK Release como artefacto
-        uses: actions/upload-artifact@v4
-        with:
-          name: nexus-admin-release-apk
-          path: output/nexus-admin-*-release-unsigned.apk
-      
-      - name: Crear Release en GitHub
+      - name: Crear Release (opcional)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v1
         with:
@@ -135,10 +140,25 @@ jobs:
             
             - **Versión:** ${{ github.event.inputs.version || '1.0.0' }}
             - **Build:** #${{ github.run_number }}
+            - **Fecha:** $(date +%Y-%m-%d)
             
-            ### 📥 Descargas:
-            - **APK Debug:** Para pruebas
-            - **APK Release:** Sin firmar (necesita firma para producción)
+            ### 📥 Instalación:
+            1. Descarga el archivo APK
+            2. Permite "Fuentes desconocidas" en tu Android
+            3. Instala la APK
+            
+            ### 📦 Módulos incluidos:
+            - Dashboard con KPIs
+            - Inventario
+            - Ventas
+            - Caja
+            - Gastos
+            - Cuentas por Cobrar
+            - Mermas y Consumo
+            - Reabastecimiento
+            - Análisis de Proveedores
+            - Reportes
+            - Respaldos
           files: |
             output/*.apk
         env:
