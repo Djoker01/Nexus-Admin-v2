@@ -1,21 +1,42 @@
 class NexusDatabase {
     constructor() {
         this.dbName = 'NexusAdminDB';
-        this.dbVersion = 2;
+        this.dbVersion = 6;
         this.db = null;
     }
 
     async init() {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open(this.dbName, this.dbVersion);
+            // IMPORTANTE: Usar window.indexedDB o indexedDB global
+            const idb = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || indexedDB;
+            
+            if (!idb) {
+                console.error('IndexedDB no disponible');
+                reject(new Error('IndexedDB no disponible'));
+                return;
+            }
 
-            request.onerror = () => {
-                console.error('Error al abrir la base de datos:', request.error);
-                reject(request.error);
+            const request = idb.open(this.dbName, this.dbVersion);
+
+            request.onerror = (event) => {
+                console.error('Error al abrir la base de datos:', event.target.error);
+                reject(event.target.error);
             };
 
-            request.onsuccess = () => {
-                this.db = request.result;
+            request.onsuccess = (event) => {
+                this.db = event.target.result;
+                
+                // IMPORTANTE: Manejar el evento de cierre inesperado
+                this.db.onclose = () => {
+                    console.warn('Base de datos cerrada inesperadamente');
+                };
+                
+                // IMPORTANTE: Manejar errores de versión
+                this.db.onversionchange = () => {
+                    this.db.close();
+                    console.warn('La base de datos necesita actualizarse');
+                };
+                
                 console.log('Base de datos inicializada correctamente');
                 resolve();
             };
@@ -30,7 +51,7 @@ class NexusDatabase {
                         keyPath: 'id', 
                         autoIncrement: true 
                     });
-                    productStore.createIndex('code', 'code', { unique: true });
+                    productStore.createIndex('code', 'code', { unique: false });
                     productStore.createIndex('name', 'name', { unique: false });
                     productStore.createIndex('category', 'category', { unique: false });
                     productStore.createIndex('stock', 'stock', { unique: false });
@@ -57,16 +78,6 @@ class NexusDatabase {
                     salesStore.createIndex('paymentMethod', 'paymentMethod', { unique: false });
                 }
 
-                // Tabla de Items de Venta
-                if (!db.objectStoreNames.contains('saleItems')) {
-                    const saleItemsStore = db.createObjectStore('saleItems', { 
-                        keyPath: 'id', 
-                        autoIncrement: true 
-                    });
-                    saleItemsStore.createIndex('saleId', 'saleId', { unique: false });
-                    saleItemsStore.createIndex('productId', 'productId', { unique: false });
-                }
-
                 // Tabla de Movimientos de Caja
                 if (!db.objectStoreNames.contains('cashMovements')) {
                     const cashStore = db.createObjectStore('cashMovements', { 
@@ -85,32 +96,238 @@ class NexusDatabase {
                     });
                     expensesStore.createIndex('date', 'date', { unique: false });
                     expensesStore.createIndex('category', 'category', { unique: false });
-                    expensesStore.createIndex('isFixed', 'isFixed', { unique: false });
+                }
+
+                // Tabla de Clientes
+                if (!db.objectStoreNames.contains('clients')) {
+                    const clientStore = db.createObjectStore('clients', { 
+                        keyPath: 'id', 
+                        autoIncrement: true 
+                    });
+                    clientStore.createIndex('name', 'name', { unique: false });
+                    clientStore.createIndex('status', 'status', { unique: false });
+                }
+
+                // Tabla de Cuentas por Cobrar
+                if (!db.objectStoreNames.contains('accountsReceivable')) {
+                    const arStore = db.createObjectStore('accountsReceivable', { 
+                        keyPath: 'id', 
+                        autoIncrement: true 
+                    });
+                    arStore.createIndex('clientId', 'clientId', { unique: false });
+                    arStore.createIndex('date', 'date', { unique: false });
+                    arStore.createIndex('status', 'status', { unique: false });
+                }
+
+                // Tabla de Pagos
+                if (!db.objectStoreNames.contains('payments')) {
+                    const paymentStore = db.createObjectStore('payments', { 
+                        keyPath: 'id', 
+                        autoIncrement: true 
+                    });
+                    paymentStore.createIndex('accountId', 'accountId', { unique: false });
+                }
+
+                // Tabla de Mermas
+                if (!db.objectStoreNames.contains('shrinkage')) {
+                    const shrinkageStore = db.createObjectStore('shrinkage', { 
+                        keyPath: 'id', 
+                        autoIncrement: true 
+                    });
+                    shrinkageStore.createIndex('date', 'date', { unique: false });
+                    shrinkageStore.createIndex('type', 'type', { unique: false });
+                }
+
+                // Tabla de Reabastecimiento
+                if (!db.objectStoreNames.contains('restock')) {
+                    const restockStore = db.createObjectStore('restock', { 
+                        keyPath: 'id', 
+                        autoIncrement: true 
+                    });
+                    restockStore.createIndex('date', 'date', { unique: false });
+                }
+
+                // Tabla de Proveedores
+                if (!db.objectStoreNames.contains('suppliers')) {
+                    const supplierStore = db.createObjectStore('suppliers', { 
+                        keyPath: 'id', 
+                        autoIncrement: true 
+                    });
+                    supplierStore.createIndex('name', 'name', { unique: false });
+                }
+
+                // Tabla de Cotizaciones
+                if (!db.objectStoreNames.contains('supplierQuotes')) {
+                    const quotesStore = db.createObjectStore('supplierQuotes', { 
+                        keyPath: 'id', 
+                        autoIncrement: true 
+                    });
+                    quotesStore.createIndex('date', 'date', { unique: false });
+                }
+
+                // Tabla de Comparaciones
+                if (!db.objectStoreNames.contains('purchaseComparisons')) {
+                    const comparisonStore = db.createObjectStore('purchaseComparisons', { 
+                        keyPath: 'id', 
+                        autoIncrement: true 
+                    });
+                    comparisonStore.createIndex('date', 'date', { unique: false });
+                }
+
+                // Tabla de Notificaciones
+                if (!db.objectStoreNames.contains('notifications')) {
+                    const notifStore = db.createObjectStore('notifications', { 
+                        keyPath: 'id', 
+                        autoIncrement: true 
+                    });
+                    notifStore.createIndex('read', 'read', { unique: false });
                 }
 
                 // Tabla de Configuración
                 if (!db.objectStoreNames.contains('settings')) {
-                    db.createObjectStore('settings', { 
-                        keyPath: 'key'
-                    });
+                    db.createObjectStore('settings', { keyPath: 'key' });
                 }
+                
+                console.log('✅ Estructura de base de datos actualizada');
             };
         });
     }
 
-    // Operaciones CRUD genéricas
+    // CORREGIR: Operación add con mejor manejo de errores
     async add(storeName, data) {
         return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([storeName], 'readwrite');
-            const store = transaction.objectStore(storeName);
-            const request = store.add({
-                ...data,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            });
+            if (!this.db) {
+                reject(new Error('Base de datos no inicializada'));
+                return;
+            }
 
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
+            try {
+                const transaction = this.db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                
+                // Asegurar que los datos tengan createdAt
+                if (!data.createdAt) {
+                    data.createdAt = new Date().toISOString();
+                }
+                if (!data.updatedAt) {
+                    data.updatedAt = new Date().toISOString();
+                }
+
+                const request = store.add(data);
+
+                request.onsuccess = (event) => {
+                    console.log(`✅ Registro agregado en ${storeName}:`, event.target.result);
+                    resolve(event.target.result);
+                };
+
+                request.onerror = (event) => {
+                    console.error(`❌ Error al agregar en ${storeName}:`, event.target.error);
+                    // Intentar con transaction.oncomplete como fallback
+                    transaction.oncomplete = () => {
+                        resolve(request.result);
+                    };
+                    reject(event.target.error);
+                };
+
+                // IMPORTANTE: Manejar que la transacción se complete
+                transaction.oncomplete = () => {
+                    console.log(`Transacción completada en ${storeName}`);
+                };
+
+                transaction.onerror = (event) => {
+                    console.error(`Error en transacción de ${storeName}:`, event.target.error);
+                };
+
+                transaction.onabort = (event) => {
+                    console.error(`Transacción abortada en ${storeName}:`, event.target.error);
+                };
+
+            } catch (error) {
+                console.error(`Error creando transacción en ${storeName}:`, error);
+                reject(error);
+            }
+        });
+    }
+
+    // CORREGIR: Operación getAll
+    async getAll(storeName) {
+        return new Promise((resolve, reject) => {
+            if (!this.db) {
+                resolve([]);
+                return;
+            }
+
+            try {
+                const transaction = this.db.transaction([storeName], 'readonly');
+                const store = transaction.objectStore(storeName);
+                const request = store.getAll();
+
+                request.onsuccess = () => {
+                    resolve(request.result || []);
+                };
+
+                request.onerror = (event) => {
+                    console.error(`Error leyendo ${storeName}:`, event.target.error);
+                    resolve([]);
+                };
+            } catch (error) {
+                console.error(`Error en getAll ${storeName}:`, error);
+                resolve([]);
+            }
+        });
+    }
+
+    // CORREGIR: Operación update
+    async update(storeName, data) {
+        return new Promise((resolve, reject) => {
+            if (!this.db) {
+                reject(new Error('Base de datos no inicializada'));
+                return;
+            }
+
+            try {
+                const transaction = this.db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                
+                data.updatedAt = new Date().toISOString();
+                const request = store.put(data);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = (event) => reject(event.target.error);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    // CORREGIR: Operación delete
+    async delete(storeName, id) {
+        return new Promise((resolve, reject) => {
+            if (!this.db) {
+                reject(new Error('Base de datos no inicializada'));
+                return;
+            }
+
+            try {
+                const transaction = this.db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.delete(id);
+
+                request.onsuccess = () => resolve();
+                request.onerror = (event) => reject(event.target.error);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    // ... resto de métodos igual ...
+}
+
+// Crear instancia global con verificación
+if (typeof window !== 'undefined') {
+    window.db = new NexusDatabase();
+}            request.onerror = () => reject(request.error);
         });
     }
 
