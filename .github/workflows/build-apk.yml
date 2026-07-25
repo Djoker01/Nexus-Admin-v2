@@ -10,6 +10,12 @@ on:
         required: true
         default: '1.0.0'
 
+# AGREGAR ESTOS PERMISOS
+permissions:
+  contents: write
+  packages: write
+  actions: read
+
 jobs:
   build-apk:
     runs-on: ubuntu-latest
@@ -21,7 +27,7 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
       
       - name: Configurar Java
         uses: actions/setup-java@v4
@@ -40,25 +46,18 @@ jobs:
           ls -la
           echo "=== Archivos en www ==="
           ls -la www/ || echo "⚠️ Carpeta www NO EXISTE"
-          echo "=== Buscando index.html ==="
-          find . -name "index.html" -type f
       
       - name: Crear carpeta www si no existe
         run: |
           if [ ! -d "www" ]; then
-            echo "⚠️ Creando carpeta www..."
+            echo "Creando carpeta www..."
             mkdir -p www
-            mkdir -p www/css
-            mkdir -p www/js/modules
-            mkdir -p www/lib
-            mkdir -p www/icons
           fi
       
       - name: Mover archivos a www si están en raíz
         run: |
-          # Si index.html está en la raíz, mover todo a www
           if [ -f "index.html" ] && [ ! -f "www/index.html" ]; then
-            echo "Moviendo archivos de raíz a www..."
+            echo "Moviendo archivos a www..."
             cp -r index.html www/ 2>/dev/null || true
             cp -r manifest.json www/ 2>/dev/null || true
             cp -r sw.js www/ 2>/dev/null || true
@@ -67,33 +66,8 @@ jobs:
             cp -r lib www/ 2>/dev/null || true
             cp -r icons www/ 2>/dev/null || true
           fi
-      
-      - name: Verificar www después de mover
-        run: |
-          echo "=== www después de mover ==="
+          echo "=== Contenido final de www ==="
           ls -la www/
-          echo "=== ¿Existe index.html? ==="
-          ls -la www/index.html || echo "❌ NO EXISTE"
-      
-      - name: Crear index.html mínimo si no existe
-        run: |
-          if [ ! -f "www/index.html" ]; then
-            echo "❌ Creando index.html de emergencia..."
-            cat > www/index.html << 'HTMLEOF'
-          <!DOCTYPE html>
-          <html lang="es">
-          <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>Nexus Admin</title>
-          </head>
-          <body>
-              <h1>Nexus Admin</h1>
-              <p>La aplicación se está cargando...</p>
-          </body>
-          </html>
-          HTMLEOF
-          fi
       
       - name: Instalar dependencias
         run: |
@@ -133,73 +107,21 @@ jobs:
       
       - name: Crear Release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.event.inputs.version || '1.0.0' }}
           name: Nexus Admin v${{ github.event.inputs.version || '1.0.0' }}
           body: |
             ## 📱 Nexus Admin APK
             **Versión:** ${{ github.event.inputs.version || '1.0.0' }}
+            **Build:** #${{ github.run_number }}
             
-            ### Para instalar:
-            1. Descarga el APK
-            2. Permite fuentes desconocidas
-            3. Instala y abre
+            ### 📥 Para instalar:
+            1. Descarga el archivo `nexus-admin.apk`
+            2. Permite "Fuentes desconocidas" en Android
+            3. Instala y abre la app
           files: |
             output/*.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}      
-      - name: Crear carpeta de salida
-        run: |
-          mkdir -p output
-      
-      - name: Copiar APK Debug
-        run: |
-          if [ -f "android/app/build/outputs/apk/debug/app-debug.apk" ]; then
-            cp android/app/build/outputs/apk/debug/app-debug.apk output/nexus-admin-debug.apk
-            echo "✅ APK Debug copiada"
-          else
-            echo "⚠️ APK Debug no encontrada, buscando..."
-            find android -name "*.apk" -exec cp {} output/nexus-admin-debug.apk \;
-          fi
-      
-      - name: Subir APK como artefacto
-        uses: actions/upload-artifact@v4
-        with:
-          name: nexus-admin-apk
-          path: output/*.apk
-      
-      - name: Crear Release (opcional)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ github.event.inputs.version || '1.0.0' }}
-          name: Nexus Admin v${{ github.event.inputs.version || '1.0.0' }}
-          body: |
-            ## 📱 Nexus Admin APK
-            
-            - **Versión:** ${{ github.event.inputs.version || '1.0.0' }}
-            - **Build:** #${{ github.run_number }}
-            - **Fecha:** $(date +%Y-%m-%d)
-            
-            ### 📥 Instalación:
-            1. Descarga el archivo APK
-            2. Permite "Fuentes desconocidas" en tu Android
-            3. Instala la APK
-            
-            ### 📦 Módulos incluidos:
-            - Dashboard con KPIs
-            - Inventario
-            - Ventas
-            - Caja
-            - Gastos
-            - Cuentas por Cobrar
-            - Mermas y Consumo
-            - Reabastecimiento
-            - Análisis de Proveedores
-            - Reportes
-            - Respaldos
-          files: |
-            output/*.apk
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
