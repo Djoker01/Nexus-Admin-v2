@@ -1,27 +1,15 @@
 {
-  "appId": "com.tunegocio.nexusadmin",
+  "appId": "com.nexus.admin",
   "appName": "Nexus Admin",
   "webDir": "www",
-  "bundledWebRuntime": false,
   "server": {
-    "androidScheme": "https"
-  },
-  "plugins": {
-    "SplashScreen": {
-      "launchShowDuration": 2000,
-      "backgroundColor": "#FFFFFF",
-      "androidScaleType": "CENTER_CROP"
-    }
+    "androidScheme": "http",
+    "cleartext": true,
+    "allowNavigation": ["*"]
   },
   "android": {
     "allowMixedContent": true,
     "captureInput": true,
-    "webContentsDebuggingEnabled": false,
-    "buildOptions": {
-      "keystorePath": "",
-      "keystorePassword": "",
-      "keystoreAlias": "",
-      "keystoreAliasPassword": ""
-    }
+    "webContentsDebuggingEnabled": true
   }
 }
