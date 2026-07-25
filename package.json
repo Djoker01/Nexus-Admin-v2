@@ -1,0 +1,19 @@
+{
+  "name": "nexus-admin",
+  "version": "1.0.0",
+  "description": "Nexus Admin - Sistema de Administración",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 'Build completado'",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^5.0.0",
+    "@capacitor/core": "^5.0.0",
+    "@capacitor/cli": "^5.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.0"
+  }
+}
