@@ -1,0 +1,145 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # Permite ejecución manual
+    inputs:
+      version:
+        description: 'Versión de la APK'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+      
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-33 build-tools;33.0.0'
+      
+      - name: Instalar dependencias
+        run: |
+          npm install
+          npm install -g @capacitor/cli
+      
+      - name: Crear recursos de Android
+        run: |
+          # Crear directorios necesarios
+          mkdir -p android/app/src/main/res/mipmap-hdpi
+          mkdir -p android/app/src/main/res/mipmap-mdpi
+          mkdir -p android/app/src/main/res/mipmap-xhdpi
+          mkdir -p android/app/src/main/res/mipmap-xxhdpi
+          mkdir -p android/app/src/main/res/mipmap-xxxhdpi
+          mkdir -p android/app/src/main/res/drawable
+          mkdir -p android/app/src/main/res/values
+      
+      - name: Generar íconos (script Python)
+        run: |
+          python3 << 'EOF'
+          from PIL import Image, ImageDraw, ImageFont
+          import os
+          
+          sizes = [48, 72, 96, 144, 192, 512]
+          for size in sizes:
+              img = Image.new('RGB', (size, size), color='#111827')
+              draw = ImageDraw.Draw(img)
+              # Dibujar círculo blanco
+              margin = size // 8
+              draw.ellipse([margin, margin, size-margin, size-margin], fill='white')
+              # Dibujar letra N
+              try:
+                  font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size//2)
+              except:
+                  font = ImageFont.load_default()
+              draw.text((size//2, size//2), 'N', fill='#111827', font=font, anchor='mm')
+              img.save(f'www/icons/icon-{size}x{size}.png')
+          print("✅ Íconos generados")
+          EOF
+        continue-on-error: true
+      
+      - name: Inicializar Capacitor
+        run: |
+          npx cap init "Nexus Admin" "com.tunegocio.nexusadmin" --web-dir=www
+      
+      - name: Agregar plataforma Android
+        run: |
+          npx cap add android
+      
+      - name: Sincronizar proyecto web
+        run: |
+          npx cap sync android
+      
+      - name: Configurar Gradle
+        run: |
+          cd android
+          # Configurar versión
+          sed -i "s/versionCode 1/versionCode ${GITHUB_RUN_NUMBER}/" app/build.gradle
+          sed -i "s/versionName \"1.0\"/versionName \"${{ github.event.inputs.version || '1.0.0' }}\"/" app/build.gradle
+          
+          # Dar permisos de ejecución a gradlew
+          chmod +x gradlew
+      
+      - name: Compilar APK Debug
+        run: |
+          cd android
+          ./gradlew assembleDebug
+      
+      - name: Compilar APK Release (firmada con debug key)
+        run: |
+          cd android
+          ./gradlew assembleRelease
+      
+      - name: Renombrar APK
+        run: |
+          mkdir -p output
+          cp android/app/build/outputs/apk/debug/app-debug.apk output/nexus-admin-v${{ github.event.inputs.version || '1.0.0' }}-debug.apk
+          cp android/app/build/outputs/apk/release/app-release-unsigned.apk output/nexus-admin-v${{ github.event.inputs.version || '1.0.0' }}-release-unsigned.apk
+      
+      - name: Subir APK Debug como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-admin-debug-apk
+          path: output/nexus-admin-*-debug.apk
+      
+      - name: Subir APK Release como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-admin-release-apk
+          path: output/nexus-admin-*-release-unsigned.apk
+      
+      - name: Crear Release en GitHub
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.event.inputs.version || '1.0.0' }}
+          name: Nexus Admin v${{ github.event.inputs.version || '1.0.0' }}
+          body: |
+            ## 📱 Nexus Admin APK
+            
+            - **Versión:** ${{ github.event.inputs.version || '1.0.0' }}
+            - **Build:** #${{ github.run_number }}
+            
+            ### 📥 Descargas:
+            - **APK Debug:** Para pruebas
+            - **APK Release:** Sin firmar (necesita firma para producción)
+          files: |
+            output/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
