@@ -5,6 +5,7 @@ const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
     '/css/style.css',
+    '/js/chart.js',
     '/js/app.js',
     '/js/db.js',
     '/js/utils.js',
@@ -16,7 +17,6 @@ const ASSETS_TO_CACHE = [
     '/js/modules/reports.js',
     '/manifest.json',
     'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
-    'https://cdn.jsdelivr.net/npm/chart.js'
 ];
 
 // Instalación del Service Worker
