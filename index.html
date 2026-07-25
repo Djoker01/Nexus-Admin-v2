@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#FFFFFF">
+    <meta name="description" content="Nexus Admin - Sistema de administración para negocios">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icons/icon-512x512.png">
+    <link rel="apple-touch-icon" href="icons/icon-512x512.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Nexus Admin - Panel de Administración</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect width="32" height="32" rx="8" fill="#1a1a1a"/>
+                    <path d="M8 16L14 22L24 10" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Nexus Admin</span>
+            </div>
+            <button class="sidebar-toggle" onclick="toggleSidebar()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12h18M3 6h18M3 18h18"/>
+                </svg>
+            </button>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" data-section="dashboard" onclick="showSection('dashboard')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"/>
+                    <rect x="14" y="3" width="7" height="7"/>
+                    <rect x="3" y="14" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/>
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            
+            <a href="#" class="nav-item" data-section="inventory" onclick="showSection('inventory')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                </svg>
+                <span>Inventario</span>
+            </a>
+            
+            <a href="#" class="nav-item" data-section="sales" onclick="showSection('sales')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23"/>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+                <span>Ventas</span>
+            </a>
+            
+            <a href="#" class="nav-item" data-section="cash" onclick="showSection('cash')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                    <line x1="1" y1="10" x2="23" y2="10"/>
+                </svg>
+                <span>Caja</span>
+            </a>
+            
+            <a href="#" class="nav-item" data-section="expenses" onclick="showSection('expenses')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+                <span>Gastos</span>
+            </a>
+            
+            <a href="#" class="nav-item" data-section="reports" onclick="showSection('reports')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+                <span>Reportes</span>
+            </a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="avatar">A</div>
+                <div>
+                    <p class="user-name">Admin</p>
+                    <p class="user-role">Administrador</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Contenido Principal -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12h18M3 6h18M3 18h18"/>
+                    </svg>
+                </button>
+                <div class="date-display" id="current-date"></div>
+            </div>
+            <div class="header-right">
+                <button class="header-btn" onclick="refreshData()" title="Actualizar datos">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"/>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                    </svg>
+                </button>
+                <button class="header-btn notification-btn" title="Notificaciones">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <span class="badge" id="notification-badge">0</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Contenido Dinámico -->
+        <div class="content-wrapper">
+            <!-- Dashboard Section -->
+            <section id="dashboard-section" class="section active">
+                <div class="section-header">
+                    <h2>Dashboard</h2>
+                    <p>Resumen general de tu negocio</p>
+                </div>
+                
+                <!-- KPIs Principales -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: #e3f2fd;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1976d2" stroke-width="2">
+                                <line x1="12" y1="1" x2="12" y2="23"/>
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                            </svg>
+                        </div>
+                        <div class="kpi-content">
+                            <p class="kpi-label">Ventas del Día</p>
+                            <p class="kpi-value" id="kpi-daily-sales">$0.00</p>
+                            <p class="kpi-change positive" id="kpi-sales-change">+0% vs ayer</p>
+                        </div>
+                    </div>
+                    
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: #e8f5e8;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#388e3c" stroke-width="2">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                            </svg>
+                        </div>
+                        <div class="kpi-content">
+                            <p class="kpi-label">Ganancias Netas</p>
+                            <p class="kpi-value" id="kpi-net-profit">$0.00</p>
+                            <p class="kpi-change positive" id="kpi-profit-change">+0% vs ayer</p>
+                        </div>
+                    </div>
+                    
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: #fff3e0;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f57c00" stroke-width="2">
+                                <rect x="2" y="5" width="20" height="14" rx="2"/>
+                                <line x1="2" y1="10" x2="22" y2="10"/>
+                            </svg>
+                        </div>
+                        <div class="kpi-content">
+                            <p class="kpi-label">Estado de Caja</p>
+                            <p class="kpi-value" id="kpi-cash-balance">$0.00</p>
+                            <p class="kpi-label">Saldo actual</p>
+                        </div>
+                    </div>
+                    
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: #fce4ec;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d32f2f" stroke-width="2">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                        </div>
+                        <div class="kpi-content">
+                            <p class="kpi-label">Stock Bajo</p>
+                            <p class="kpi-value" id="kpi-low-stock">0</p>
+                            <p class="kpi-label">Productos críticos</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Gráficos y Tablas -->
+                <div class="dashboard-grid">
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <h3>Ventas Últimos 7 Días</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="weekly-sales-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Últimas Ventas</h3>
+                        </div>
+                        <div class="table-container" id="recent-sales">
+                            <!-- Se llena dinámicamente -->
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Top Productos del Mes</h3>
+                        </div>
+                        <div class="table-container" id="top-products-dashboard">
+                            <!-- Se llena dinámicamente -->
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Indicadores Rápidos</h3>
+                        </div>
+                        <div class="quick-indicators" id="quick-indicators">
+                            <!-- Se llena dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Inventory Section -->
+            <section id="inventory-section" class="section">
+                <div class="section-header">
+                    <h2>Gestión de Inventario</h2>
+                    <button class="btn-primary" onclick="openProductModal()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Nuevo Producto
+                    </button>
+                </div>
+                
+                <div class="inventory-controls">
+                    <div class="search-box">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        <input type="text" id="inventory-search" placeholder="Buscar productos...">
+                    </div>
+                    <select id="category-filter" class="filter-select">
+                        <option value="">Todas las categorías</option>
+                    </select>
+                    <select id="stock-filter" class="filter-select">
+                        <option value="">Todo el stock</option>
+                        <option value="low">Stock bajo</option>
+                        <option value="out">Agotados</option>
+                        <option value="available">Disponibles</option>
+                    </select>
+                </div>
+                
+                <div class="card">
+                    <div class="table-container" id="inventory-table">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sales Section -->
+            <section id="sales-section" class="section">
+                <div class="section-header">
+                    <h2>Registro de Ventas</h2>
+                    <button class="btn-primary" onclick="openSaleModal()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Nueva Venta
+                    </button>
+                </div>
+                
+                <div class="sales-stats-grid">
+                    <div class="stat-card">
+                        <h4>Ventas Hoy</h4>
+                        <p class="stat-value" id="stat-sales-today">$0.00</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Ventas del Mes</h4>
+                        <p class="stat-value" id="stat-sales-month">$0.00</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Transacciones Hoy</h4>
+                        <p class="stat-value" id="stat-transactions-today">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Ticket Promedio</h4>
+                        <p class="stat-value" id="stat-avg-ticket">$0.00</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Historial de Ventas</h3>
+                        <div class="date-filters">
+                            <input type="date" id="sales-date-from">
+                            <span>a</span>
+                            <input type="date" id="sales-date-to">
+                            <button class="btn-secondary" onclick="filterSalesByDate()">Filtrar</button>
+                        </div>
+                    </div>
+                    <div class="table-container" id="sales-table">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Cash Section -->
+            <section id="cash-section" class="section">
+                <div class="section-header">
+                    <h2>Control de Caja</h2>
+                    <button class="btn-primary" onclick="openCashModal()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Nuevo Movimiento
+                    </button>
+                </div>
+                
+                <div class="cash-summary">
+                    <div class="card">
+                        <h3>Saldo Actual</h3>
+                        <p class="big-number" id="cash-current-balance">$0.00</p>
+                    </div>
+                    <div class="card">
+                        <h3>Ingresos del Día</h3>
+                        <p class="big-number positive" id="cash-daily-income">$0.00</p>
+                    </div>
+                    <div class="card">
+                        <h3>Egresos del Día</h3>
+                        <p class="big-number negative" id="cash-daily-expense">$0.00</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Movimientos de Caja</h3>
+                    </div>
+                    <div class="table-container" id="cash-movements">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Expenses Section -->
+            <section id="expenses-section" class="section">
+                <div class="section-header">
+                    <h2>Control de Gastos</h2>
+                    <button class="btn-primary" onclick="openExpenseModal()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Nuevo Gasto
+                    </button>
+                </div>
+                
+                <div class="expenses-summary-grid">
+                    <div class="card">
+                        <h3>Gastos del Mes</h3>
+                        <p class="big-number negative" id="expenses-monthly">$0.00</p>
+                    </div>
+                    <div class="card">
+                        <h3>Gastos Fijos</h3>
+                        <p class="big-number" id="expenses-fixed">$0.00</p>
+                    </div>
+                    <div class="card">
+                        <h3>Gastos Variables</h3>
+                        <p class="big-number" id="expenses-variable">$0.00</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Registro de Gastos</h3>
+                        <div class="expense-filters">
+                            <select id="expense-category-filter" class="filter-select">
+                                <option value="">Todas las categorías</option>
+                                <option value="servicios">Servicios</option>
+                                <option value="alquiler">Alquiler</option>
+                                <option value="salarios">Salarios</option>
+                                <option value="insumos">Insumos</option>
+                                <option value="marketing">Marketing</option>
+                                <option value="otros">Otros</option>
+                            </select>
+                            <input type="date" id="expense-date-filter">
+                        </div>
+                    </div>
+                    <div class="table-container" id="expenses-table">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reports Section -->
+            <section id="reports-section" class="section">
+                <div class="section-header">
+                    <h2>Reportes y Análisis</h2>
+                </div>
+                
+                <div class="reports-grid">
+                    <div class="card">
+                        <h3>📊 Reporte de Ventas</h3>
+                        <div class="report-controls">
+                            <select id="report-period" class="filter-select">
+                                <option value="daily">Diario</option>
+                                <option value="weekly">Semanal</option>
+                                <option value="monthly" selected>Mensual</option>
+                                <option value="yearly">Anual</option>
+                            </select>
+                            <button class="btn-secondary" onclick="generateSalesReport()">Generar</button>
+                        </div>
+                        <div id="sales-report-content"></div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>📈 Productos Más Vendidos</h3>
+                        <div id="top-products-report"></div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>💰 Resumen Financiero</h3>
+                        <div id="financial-summary"></div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>📋 Balance General</h3>
+                        <div id="general-balance"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modal de Producto -->
+    <div id="product-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="product-modal-title">Nuevo Producto</h3>
+                <button class="modal-close" onclick="closeProductModal()">&times;</button>
+            </div>
+            <form id="product-form">
+                <input type="hidden" id="product-id">
+                <div class="form-group">
+                    <label>Nombre del Producto *</label>
+                    <input type="text" id="product-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Código / SKU</label>
+                    <input type="text" id="product-code">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Categoría *</label>
+                        <select id="product-category" required>
+                            <option value="">Seleccionar categoría</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Proveedor</label>
+                        <input type="text" id="product-supplier">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Precio de Compra *</label>
+                        <input type="number" id="product-cost" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Precio de Venta *</label>
+                        <input type="number" id="product-price" step="0.01" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Stock Inicial *</label>
+                        <input type="number" id="product-stock" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Stock Mínimo *</label>
+                        <input type="number" id="product-min-stock" value="5" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <textarea id="product-description" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeProductModal()">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar Producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Venta -->
+    <div id="sale-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nueva Venta</h3>
+                <button class="modal-close" onclick="closeSaleModal()">&times;</button>
+            </div>
+            <form id="sale-form">
+                <div id="sale-items">
+                    <div class="sale-item">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Producto</label>
+                                <select class="sale-product-select" required>
+                                    <option value="">Seleccionar...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Cantidad</label>
+                                <input type="number" class="sale-quantity" value="1" min="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Precio</label>
+                                <input type="number" class="sale-price" step="0.01" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>Subtotal</label>
+                                <input type="text" class="sale-subtotal" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-secondary" onclick="addSaleItem()">
+                    + Agregar Producto
+                </button>
+                <div class="sale-summary">
+                    <div class="form-group">
+                        <label>Cliente</label>
+                        <input type="text" id="sale-customer" placeholder="Nombre del cliente">
+                    </div>
+                    <div class="form-group">
+                        <label>Método de Pago</label>
+                        <select id="sale-payment-method">
+                            <option value="efectivo">Efectivo</option>
+                            <option value="tarjeta">Tarjeta</option>
+                            <option value="transferencia">Transferencia</option>
+                        </select>
+                    </div>
+                    <div class="sale-total">
+                        <h3>Total: $<span id="sale-grand-total">0.00</span></h3>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeSaleModal()">Cancelar</button>
+                    <button type="submit" class="btn-primary">Registrar Venta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Movimiento de Caja -->
+    <div id="cash-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nuevo Movimiento</h3>
+                <button class="modal-close" onclick="closeCashModal()">&times;</button>
+            </div>
+            <form id="cash-form">
+                <div class="form-group">
+                    <label>Tipo de Movimiento *</label>
+                    <select id="cash-type" required>
+                        <option value="ingreso">Ingreso</option>
+                        <option value="egreso">Egreso</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Monto *</label>
+                    <input type="number" id="cash-amount" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Concepto *</label>
+                    <input type="text" id="cash-concept" required>
+                </div>
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <textarea id="cash-description" rows="2"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeCashModal()">Cancelar</button>
+                    <button type="submit" class="btn-primary">Registrar Movimiento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Gasto -->
+    <div id="expense-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nuevo Gasto</h3>
+                <button class="modal-close" onclick="closeExpenseModal()">&times;</button>
+            </div>
+            <form id="expense-form">
+                <div class="form-group">
+                    <label>Categoría *</label>
+                    <select id="expense-category" required>
+                        <option value="">Seleccionar...</option>
+                        <option value="servicios">Servicios</option>
+                        <option value="alquiler">Alquiler</option>
+                        <option value="salarios">Salarios</option>
+                        <option value="insumos">Insumos</option>
+                        <option value="marketing">Marketing</option>
+                        <option value="transporte">Transporte</option>
+                        <option value="impuestos">Impuestos</option>
+                        <option value="mantenimiento">Mantenimiento</option>
+                        <option value="otros">Otros</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Monto *</label>
+                    <input type="number" id="expense-amount" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Fecha *</label>
+                    <input type="date" id="expense-date" required>
+                </div>
+                <div class="form-group">
+                    <label>Descripción *</label>
+                    <input type="text" id="expense-description" required>
+                </div>
+                <div class="form-group">
+                    <label>Comprobante / Factura #</label>
+                    <input type="text" id="expense-receipt">
+                </div>
+                <div class="form-group">
+                    <label>Notas</label>
+                    <textarea id="expense-notes" rows="2"></textarea>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="expense-fixed">
+                    <label for="expense-fixed">¿Es un gasto fijo?</label>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeExpenseModal()">Cancelar</button>
+                    <button type="submit" class="btn-primary">Registrar Gasto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <script src="js/chart.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/modules/dashboard.js"></script>
+    <script src="js/modules/inventory.js"></script>
+    <script src="js/modules/sales.js"></script>
+    <script src="js/modules/cash.js"></script>
+    <script src="js/modules/expenses.js"></script>
+    <script src="js/modules/reports.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

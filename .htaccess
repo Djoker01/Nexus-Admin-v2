@@ -1,0 +1,7 @@
+# Habilitar CORS
+Header set Access-Control-Allow-Origin "*"
+
+# Forzar HTTPS (comentado para desarrollo local)
+# RewriteEngine On
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
