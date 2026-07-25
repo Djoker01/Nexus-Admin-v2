@@ -1,127 +1,289 @@
-name: Build Android APK
+name: Build APK Mejorado
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Versión de la APK'
-        required: true
-        default: '1.0.0'
 
-# AGREGAR ESTOS PERMISOS
 permissions:
-  contents: write
-  packages: write
-  actions: read
+  contents: read
 
 jobs:
-  build-apk:
+  build:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout código
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
+      - name: Verificar archivos
+        run: |
+          echo "========================================="
+          echo "CONTENIDO DE www/:"
+          echo "========================================="
+          ls -la www/
+          echo ""
+          echo "========================================="
+          echo "BUSCANDO index.html:"
+          echo "========================================="
+          find . -name "index.html"
+          echo ""
+          echo "========================================="
+          echo "TAMAÑO DE index.html:"
+          echo "========================================="
+          wc -c www/index.html 2>/dev/null || echo "NO ENCONTRADO"
+          echo ""
+          echo "========================================="
+          echo "ARCHIVOS JS:"
+          echo "========================================="
+          find . -name "*.js" -type f
+      
+      - name: Crear página de prueba si no hay index.html
+        run: |
+          if [ ! -f "www/index.html" ] || [ $(wc -c < www/index.html) -lt 100 ]; then
+            echo "Creando página de prueba funcional..."
+            cat > www/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="es">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+              <meta name="theme-color" content="#111827">
+              <title>Nexus Admin</title>
+              <style>
+                  * { margin: 0; padding: 0; box-sizing: border-box; }
+                  body {
+                      font-family: Arial, sans-serif;
+                      background: #f5f5f5;
+                      color: #333;
+                  }
+                  .header {
+                      background: #111827;
+                      color: white;
+                      padding: 20px;
+                      text-align: center;
+                  }
+                  .container {
+                      padding: 20px;
+                      max-width: 500px;
+                      margin: 0 auto;
+                  }
+                  .card {
+                      background: white;
+                      border-radius: 12px;
+                      padding: 20px;
+                      margin-bottom: 15px;
+                      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                  }
+                  .btn {
+                      background: #111827;
+                      color: white;
+                      border: none;
+                      padding: 12px 24px;
+                      border-radius: 8px;
+                      font-size: 16px;
+                      cursor: pointer;
+                      width: 100%;
+                      margin-top: 10px;
+                  }
+                  .btn:active { background: #374151; }
+                  input, select {
+                      width: 100%;
+                      padding: 12px;
+                      border: 1px solid #ddd;
+                      border-radius: 8px;
+                      font-size: 16px;
+                      margin-bottom: 10px;
+                  }
+                  .product-item {
+                      display: flex;
+                      justify-content: space-between;
+                      padding: 10px;
+                      border-bottom: 1px solid #eee;
+                  }
+                  .success { color: #10B981; }
+                  .danger { color: #EF4444; }
+              </style>
+          </head>
+          <body>
+              <div class="header">
+                  <h1>🏪 Nexus Admin</h1>
+                  <p>Sistema de Administración</p>
+              </div>
+              
+              <div class="container">
+                  <div class="card">
+                      <h2>📦 Agregar Producto</h2>
+                      <input type="text" id="productName" placeholder="Nombre del producto">
+                      <input type="number" id="productPrice" placeholder="Precio" step="0.01">
+                      <input type="number" id="productStock" placeholder="Stock">
+                      <button class="btn" onclick="addProduct()">➕ Agregar Producto</button>
+                  </div>
+                  
+                  <div class="card">
+                      <h2>📋 Inventario</h2>
+                      <div id="productList">
+                          <p style="color:#999;">No hay productos</p>
+                      </div>
+                  </div>
+                  
+                  <div class="card">
+                      <h2>💾 Estado de la Base de Datos</h2>
+                      <p id="dbStatus">Verificando...</p>
+                  </div>
+              </div>
+
+              <script>
+                  // Base de datos
+                  const DB_NAME = 'NexusAdminDB';
+                  const DB_VERSION = 1;
+                  let db;
+
+                  // Inicializar base de datos
+                  function initDB() {
+                      return new Promise((resolve, reject) => {
+                          const request = indexedDB.open(DB_NAME, DB_VERSION);
+                          
+                          request.onerror = () => {
+                              document.getElementById('dbStatus').innerHTML = 
+                                  '<span class="danger">❌ Error al abrir la base de datos</span>';
+                              reject(request.error);
+                          };
+                          
+                          request.onsuccess = () => {
+                              db = request.result;
+                              document.getElementById('dbStatus').innerHTML = 
+                                  '<span class="success">✅ Base de datos funcionando correctamente</span>';
+                              resolve();
+                          };
+                          
+                          request.onupgradeneeded = (event) => {
+                              const db = event.target.result;
+                              if (!db.objectStoreNames.contains('products')) {
+                                  const store = db.createObjectStore('products', { 
+                                      keyPath: 'id', 
+                                      autoIncrement: true 
+                                  });
+                                  store.createIndex('name', 'name', { unique: false });
+                              }
+                          };
+                      });
+                  }
+
+                  // Agregar producto
+                  async function addProduct() {
+                      const name = document.getElementById('productName').value;
+                      const price = parseFloat(document.getElementById('productPrice').value);
+                      const stock = parseInt(document.getElementById('productStock').value);
+
+                      if (!name || !price || !stock) {
+                          alert('Completa todos los campos');
+                          return;
+                      }
+
+                      const product = {
+                          name: name,
+                          price: price,
+                          cost: price * 0.7,
+                          stock: stock,
+                          minStock: 5,
+                          category: 'General',
+                          status: 'active',
+                          profit: price * 0.3,
+                          createdAt: new Date().toISOString()
+                      };
+
+                      const transaction = db.transaction(['products'], 'readwrite');
+                      const store = transaction.objectStore('products');
+                      const request = store.add(product);
+
+                      request.onsuccess = () => {
+                          document.getElementById('productName').value = '';
+                          document.getElementById('productPrice').value = '';
+                          document.getElementById('productStock').value = '';
+                          loadProducts();
+                          alert('✅ Producto agregado correctamente');
+                      };
+
+                      request.onerror = () => {
+                          alert('❌ Error al agregar producto');
+                      };
+                  }
+
+                  // Cargar productos
+                  function loadProducts() {
+                      const transaction = db.transaction(['products'], 'readonly');
+                      const store = transaction.objectStore('products');
+                      const request = store.getAll();
+
+                      request.onsuccess = () => {
+                          const products = request.result;
+                          const list = document.getElementById('productList');
+                          
+                          if (products.length === 0) {
+                              list.innerHTML = '<p style="color:#999;">No hay productos</p>';
+                              return;
+                          }
+
+                          list.innerHTML = products.map(p => `
+                              <div class="product-item">
+                                  <div>
+                                      <strong>${p.name}</strong>
+                                      <br><small>Stock: ${p.stock} | Precio: $${p.price.toFixed(2)}</small>
+                                  </div>
+                                  <button onclick="deleteProduct(${p.id})" 
+                                      style="background:#EF4444;color:white;border:none;padding:5px 10px;border-radius:5px;">
+                                      🗑️
+                                  </button>
+                              </div>
+                          `).join('');
+                      };
+                  }
+
+                  // Eliminar producto
+                  function deleteProduct(id) {
+                      if (!confirm('¿Eliminar producto?')) return;
+                      const transaction = db.transaction(['products'], 'readwrite');
+                      const store = transaction.objectStore('products');
+                      store.delete(id);
+                      transaction.oncomplete = () => loadProducts();
+                  }
+
+                  // Inicializar
+                  initDB().then(() => loadProducts());
+
+                  console.log('✅ Nexus Admin cargado correctamente');
+              </script>
+          </body>
+          </html>
+          EOF
+            echo "✅ Página de prueba creada"
+          fi
+      
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
       
-      - name: Configurar Java
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
       
-      - name: Configurar Android SDK
-        uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v3
         with:
           packages: 'platforms;android-33 build-tools;33.0.0'
       
-      - name: Verificar estructura del proyecto
+      - name: Instalar Capacitor
         run: |
-          echo "=== Archivos en la raíz ==="
-          ls -la
-          echo "=== Archivos en www ==="
-          ls -la www/ || echo "⚠️ Carpeta www NO EXISTE"
+          npm init -y 2>/dev/null || true
+          npm install @capacitor/core @capacitor/cli @capacitor/android
       
-      - name: Crear carpeta www si no existe
+      - name: Compilar APK
         run: |
-          if [ ! -d "www" ]; then
-            echo "Creando carpeta www..."
-            mkdir -p www
-          fi
+          rm -rf android 2>/dev/null || true
+          npx cap init "Nexus Admin" "com.nexus.admin" --web-dir=www
+          npx cap add android
+          npx cap sync android
+          cd android && chmod +x gradlew && ./gradlew assembleDebug
       
-      - name: Mover archivos a www si están en raíz
-        run: |
-          if [ -f "index.html" ] && [ ! -f "www/index.html" ]; then
-            echo "Moviendo archivos a www..."
-            cp -r index.html www/ 2>/dev/null || true
-            cp -r manifest.json www/ 2>/dev/null || true
-            cp -r sw.js www/ 2>/dev/null || true
-            cp -r css www/ 2>/dev/null || true
-            cp -r js www/ 2>/dev/null || true
-            cp -r lib www/ 2>/dev/null || true
-            cp -r icons www/ 2>/dev/null || true
-          fi
-          echo "=== Contenido final de www ==="
-          ls -la www/
-      
-      - name: Instalar dependencias
-        run: |
-          npm install
-          npm install -g @capacitor/cli
-      
-      - name: Eliminar android si existe
-        run: rm -rf android
-      
-      - name: Agregar plataforma Android
-        run: npx cap add android
-      
-      - name: Sincronizar proyecto web
-        run: npx cap sync android
-      
-      - name: Dar permisos a Gradle
-        run: |
-          cd android
-          chmod +x gradlew
-      
-      - name: Compilar APK Debug
-        run: |
-          cd android
-          ./gradlew assembleDebug
-      
-      - name: Copiar APK
-        run: |
-          mkdir -p output
-          find android -name "*.apk" -exec cp {} output/nexus-admin.apk \;
-          ls -la output/
-      
-      - name: Subir APK como artefacto
+      - name: Subir APK
         uses: actions/upload-artifact@v4
         with:
-          name: nexus-admin-apk
-          path: output/*.apk
-      
-      - name: Crear Release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ github.event.inputs.version || '1.0.0' }}
-          name: Nexus Admin v${{ github.event.inputs.version || '1.0.0' }}
-          body: |
-            ## 📱 Nexus Admin APK
-            **Versión:** ${{ github.event.inputs.version || '1.0.0' }}
-            **Build:** #${{ github.run_number }}
-            
-            ### 📥 Para instalar:
-            1. Descarga el archivo `nexus-admin.apk`
-            2. Permite "Fuentes desconocidas" en Android
-            3. Instala y abre la app
-          files: |
-            output/*.apk
-          fail_on_unmatched_files: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: Nexus-Admin-APK
+          path: android/app/build/outputs/apk/debug/*.apk
