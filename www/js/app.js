@@ -1,3 +1,18 @@
+// Detectar si estamos en una APK
+const isAPK = window.Capacitor !== undefined || 
+              navigator.userAgent.includes('Android') && 
+              !navigator.userAgent.includes('Chrome');
+
+console.log('Entorno:', isAPK ? 'APK' : 'Navegador');
+console.log('IndexedDB disponible:', !!window.indexedDB);
+
+// Forzar modo escritura en IndexedDB
+if (isAPK) {
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('APK detectada, configurando IndexedDB...');
+    });
+}
+
 // Variables globales
 
 let dashboardManager;
